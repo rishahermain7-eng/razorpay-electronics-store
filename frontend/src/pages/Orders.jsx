@@ -54,7 +54,7 @@ function Orders() {
             </span>
 
             <a
-              href={`http://localhost:5000/api/invoice/${order._id}`}
+             href={`${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/invoice/${order._id}`}
               target="_blank"
               rel="noreferrer"
             >
