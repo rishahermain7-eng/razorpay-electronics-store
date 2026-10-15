@@ -16,10 +16,13 @@ connectDB();
 app.use(
   cors({
     origin: "https://razorpay-electronics-store-wvse.vercel.app",
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.options("*", cors());
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
