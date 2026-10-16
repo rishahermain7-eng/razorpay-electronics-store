@@ -7,38 +7,37 @@ function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
+  // Loading state for Buy Now
+  const [loadingProductId, setLoadingProductId] = useState(null);
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const fetchProducts = async () => {
-  try {
+    try {
+      const urls = [
+        "https://dummyjson.com/products/category/laptops",
+        "https://dummyjson.com/products/category/tablets",
+        "https://dummyjson.com/products/category/mobile-accessories",
+        "https://dummyjson.com/products/category/smartphones"
+      ];
 
-    const urls = [
-      "https://dummyjson.com/products/category/laptops",
-      "https://dummyjson.com/products/category/tablets",
-      "https://dummyjson.com/products/category/mobile-accessories",
-      "https://dummyjson.com/products/category/smartphones"
-    ];
+      const responses = await Promise.all(
+        urls.map((url) => fetch(url))
+      );
 
-    const responses = await Promise.all(
-      urls.map(url => fetch(url))
-    );
+      const results = await Promise.all(
+        responses.map((r) => r.json())
+      );
 
-    const results = await Promise.all(
-      responses.map(r => r.json())
-    );
+      const allProducts = results.flatMap((item) => item.products);
 
-    const allProducts = results.flatMap(item => item.products);
-
-    setProducts(allProducts);
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-};
+      setProducts(allProducts);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.title
@@ -46,21 +45,22 @@ function Home() {
       .includes(search.toLowerCase());
 
     const matchesCategory =
-  category === "All" ||
-  product.category?.toLowerCase() === category.toLowerCase();
+      category === "All" ||
+      product.category?.toLowerCase() === category.toLowerCase();
 
     return matchesSearch && matchesCategory;
   });
 
   const handlePayment = async (product) => {
     try {
+      // Start loader
+      setLoadingProductId(product.id);
+
       const { data } = await API.post("/orders", {
         productId: product.id,
         amount: product.price,
         productName: product.title,
       });
-
-  
 
       const options = {
         key: data.key,
@@ -104,27 +104,41 @@ function Home() {
       };
 
       const razorpay = new window.Razorpay(options);
+
+      // Stop loader when Razorpay checkout is ready
+      razorpay.on("payment.failed", function () {
+        setLoadingProductId(null);
+      });
+
       razorpay.open();
+
+      // Checkout has opened, so stop the loader
+      setLoadingProductId(null);
+
     } catch (error) {
       console.error(error);
+      alert("Unable to start payment");
+
+      // Stop loader if something goes wrong
+      setLoadingProductId(null);
     }
   };
 
   const handlePaymentLink = async (product) => {
-  try {
-    const { data } = await API.post("/payment-link", {
-      amount: product.price,
-      productName: product.title,
-    });
+    try {
+      const { data } = await API.post("/payment-link", {
+        amount: product.price,
+        productName: product.title,
+      });
 
-    if (data.success) {
-      window.open(data.paymentLink, "_blank");
+      if (data.success) {
+        window.open(data.paymentLink, "_blank");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Unable to generate payment link");
     }
-  } catch (error) {
-    console.error(error);
-    alert("Unable to generate payment link");
-  }
-};
+  };
 
   return (
     <>
@@ -162,80 +176,80 @@ function Home() {
       </section>
 
       <section className="products">
-  {filteredProducts.length > 0 ? (
-    filteredProducts.map((product) => (
-      <ProductCard
-        key={product.id}
-        product={product}
-        handlePayment={handlePayment}
-        handlePaymentLink={handlePaymentLink}
-      />
-    ))
-  ) : (
-    <h2
-      style={{
-        textAlign: "center",
-        gridColumn: "1 / -1",
-        color: "#555",
-      }}
-    >
-      No products found.
-    </h2>
-  )}
-</section>
+        {filteredProducts.length > 0 ? (
+          filteredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              handlePayment={handlePayment}
+              handlePaymentLink={handlePaymentLink}
+              loading={loadingProductId === product.id}
+            />
+          ))
+        ) : (
+          <h2
+            style={{
+              textAlign: "center",
+              gridColumn: "1 / -1",
+              color: "#555",
+            }}
+          >
+            No products found.
+          </h2>
+        )}
+      </section>
 
-  <section className="features">
+      <section className="features">
 
-  <div className="feature-card">
-    <div className="feature-icon">🚚</div>
-    <h3>Free Delivery</h3>
-    <p>Fast & reliable delivery on selected products.</p>
-  </div>
+        <div className="feature-card">
+          <div className="feature-icon">🚚</div>
+          <h3>Free Delivery</h3>
+          <p>Fast & reliable delivery on selected products.</p>
+        </div>
 
-  <div className="feature-card">
-    <div className="feature-icon">🔒</div>
-    <h3>Secure Payments</h3>
-    <p>100% secure payments powered by Razorpay.</p>
-  </div>
+        <div className="feature-card">
+          <div className="feature-icon">🔒</div>
+          <h3>Secure Payments</h3>
+          <p>100% secure payments powered by Razorpay.</p>
+        </div>
 
-  <div className="feature-card">
-    <div className="feature-icon">📄</div>
-    <h3>Instant Invoice</h3>
-    <p>Download your invoice immediately after purchase.</p>
-  </div>
+        <div className="feature-card">
+          <div className="feature-icon">📄</div>
+          <h3>Instant Invoice</h3>
+          <p>Download your invoice immediately after purchase.</p>
+        </div>
 
-  <div className="feature-card">
-    <div className="feature-icon">💬</div>
-    <h3>24/7 Support</h3>
-    <p>We're always here to help whenever you need us.</p>
-  </div>
+        <div className="feature-card">
+          <div className="feature-icon">💬</div>
+          <h3>24/7 Support</h3>
+          <p>We're always here to help whenever you need us.</p>
+        </div>
 
-</section>
+      </section>
 
-  <section className="stats">
+      <section className="stats">
 
-  <div className="stat-card">
-    <h2>500+</h2>
-    <p>Products</p>
-  </div>
+        <div className="stat-card">
+          <h2>500+</h2>
+          <p>Products</p>
+        </div>
 
-  <div className="stat-card">
-    <h2>1000+</h2>
-    <p>Happy Customers</p>
-  </div>
+        <div className="stat-card">
+          <h2>1000+</h2>
+          <p>Happy Customers</p>
+        </div>
 
-  <div className="stat-card">
-    <h2>100%</h2>
-    <p>Secure Payments</p>
-  </div>
+        <div className="stat-card">
+          <h2>100%</h2>
+          <p>Secure Payments</p>
+        </div>
 
-  <div className="stat-card">
-    <h2>24/7</h2>
-    <p>Customer Support</p>
-  </div>
+        <div className="stat-card">
+          <h2>24/7</h2>
+          <p>Customer Support</p>
+        </div>
 
-</section>
-
+      </section>
     </>
   );
 }

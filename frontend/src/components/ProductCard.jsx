@@ -1,5 +1,11 @@
 import "./ProductCard.css";
-function ProductCard({ product, handlePayment, handlePaymentLink }) {
+
+function ProductCard({
+  product,
+  handlePayment,
+  handlePaymentLink,
+  loading,
+}) {
   const originalPrice = Math.round(
     product.price / (1 - product.discountPercentage / 100)
   );
@@ -63,18 +69,26 @@ function ProductCard({ product, handlePayment, handlePaymentLink }) {
         </div>
 
         <p className="description">
-  {product.description.length > 120
-    ? product.description.substring(0, 120) + "..."
-    : product.description}
-</p>
+          {product.description.length > 120
+            ? product.description.substring(0, 120) + "..."
+            : product.description}
+        </p>
 
         <div className="button-group">
 
           <button
             className="buy-btn"
             onClick={() => handlePayment(product)}
+            disabled={loading}
           >
-            Buy Now
+            {loading ? (
+              <>
+                <span className="loader"></span>
+                Processing...
+              </>
+            ) : (
+              "Buy Now"
+            )}
           </button>
 
           <button
